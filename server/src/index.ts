@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
-import { getReviewPrompt } from "../prompts/review";
+import { getReviewPrompt } from "../../prompts/review";
 
 dotenv.config();
 
