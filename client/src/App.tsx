@@ -1,23 +1,16 @@
 import { useState } from 'react'
+import { FileDiffViewer } from './components/FileDiffViewer'
+import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
 import './App.css'
-
-const SAMPLE_DIFF = `diff --git a/user.ts b/user.ts
---- a/user.ts
-+++ b/user.ts
-@@ -1,3 +1,5 @@
-- function getUser(id) {
--   return fetch('/api/users/' + id);
-+ function getUser(id: string): Promise<User> {
-+   if (!id) throw new Error('ID required');
-+   return fetch(\`/api/users/\${encodeURIComponent(id)}\`);
-  }
-`
+import { DIFF_MULTIPLE_HUNKS } from '../../tests/fixtures/testDiffs'
 
 export function App() {
-  const [diff, setDiff] = useState(SAMPLE_DIFF)
+  const [diff, setDiff] = useState(DIFF_MULTIPLE_HUNKS)
   const [resultText, setResultText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const fileReview = parseDiffToFileReview(diff)
 
   async function runReview() {
     setLoading(true)
@@ -83,6 +76,8 @@ export function App() {
           {loading ? 'Reviewing…' : 'Review'}
         </button>
       </section>
+
+      <FileDiffViewer fileReview={fileReview} />
 
       {error ? (
         <section className="panel error-panel" role="alert">
