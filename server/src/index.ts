@@ -16,6 +16,22 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+function normalizeReviewJsonText(rawText: string): string {
+  const trimmed = rawText.trim();
+  return trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+}
+
+function extractJsonObjectCandidate(rawText: string): string | null {
+  const firstBraceIndex = rawText.indexOf("{");
+  const lastBraceIndex = rawText.lastIndexOf("}");
+
+  if (firstBraceIndex === -1 || lastBraceIndex === -1 || lastBraceIndex <= firstBraceIndex) {
+    return null;
+  }
+
+  return rawText.slice(firstBraceIndex, lastBraceIndex + 1).trim();
+}
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -46,13 +62,32 @@ app.post("/api/review", async (req, res) => {
     const reviewText = textBlock ? textBlock.text : "";
 
     // Parse the JSON from Claude's response
-    try {
-      const review = JSON.parse(reviewText);
-      res.json(review);
-    } catch {
-      // If Claude didn't return valid JSON, return the raw text
-      res.json({ raw: reviewText, issues: [], summary: "Failed to parse structured review." });
+    const normalizedText = normalizeReviewJsonText(reviewText);
+    const objectCandidate = extractJsonObjectCandidate(normalizedText);
+    const parseCandidates = [normalizedText, objectCandidate].filter(
+      (candidate): candidate is string => Boolean(candidate),
+    );
+
+    let parsedReview: unknown = null;
+    for (const candidate of parseCandidates) {
+      try {
+        parsedReview = JSON.parse(candidate);
+        break;
+      } catch {
+        // Try the next candidate.
+      }
     }
+
+    if (parsedReview) {
+      return res.json(parsedReview);
+    }
+
+    // If Claude didn't return valid JSON, return the raw text
+    return res.json({
+      raw: reviewText,
+      issues: [],
+      summary: "Failed to parse structured review.",
+    });
   } catch (error: any) {
     console.error("Review error:", error.message);
     res.status(500).json({ error: "Failed to generate review" });
