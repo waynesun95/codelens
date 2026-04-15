@@ -136,6 +136,27 @@ Consistent across all UI components:
 - Day 8: Review history (localStorage), professional README with screenshots, deploy
 - **Checkpoint:** Deployed, portfolio-ready app
 
+### Phase 3 Addition: Scaling to Multi-File PR Reviews
+- Data model supports multi-file reviews: `FileReview[]` where each entry has a filename, diff, and individual `ReviewResponse`
+- Backend strategy: split PR diff by file → review each file individually → optional final summary call that synthesizes per-file results into an overall PR assessment
+- Diff viewer component renders a single `FileReview` — PR view maps over the array with a file picker/accordion
+- Future consideration: codebase-aware reviews via RAG or repo context injection (out of scope for Phase 1, but worth noting in README)
+
+### Phase 3 Addition: Prompt Regression Testing
+- Create `tests/prompt/` directory with test diffs covering key scenarios:
+  - Security vulnerability (SQL injection, unsanitized input)
+  - React anti-pattern (missing useEffect deps, direct state mutation)
+  - Clean/well-written code (should return mostly praise)
+  - Large diff (20+ lines, multiple concerns)
+  - Non-JavaScript language (Python, Go) to test language flexibility
+- Write a test runner script that sends each diff to `/api/review` and asserts:
+  - Response is valid JSON matching `ReviewResponse` interface
+  - `stats` counts match actual `issues` array lengths
+  - Expected severity levels are present (e.g., security vuln diff should produce at least one critical)
+  - `lineNumber` values fall within the range of the diff
+  - `overallSeverity` is consistent with the issue distribution
+- Purpose: treat the prompt in `prompts/review.ts` as a function under test. Guard against prompt regressions when iterating. Interview talking point: "I applied TDD to prompt engineering — non-deterministic AI output still needs validation like any other system behavior."
+
 ### Phase 4: GitHub Bot — Stretch (Days 9-12)
 - Days 9-10: Register GitHub App, webhook listener for pull_request.opened, auto-review with inline comments
 - Days 11-12: .codelens.yml config (ignore patterns, severity thresholds), test on real repos
