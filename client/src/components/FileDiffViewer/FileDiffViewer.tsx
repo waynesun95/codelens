@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
-import DiffViewer from "react-diff-viewer-continued";
-import { DiffMethod } from "react-diff-viewer-continued";
-import type { FileReview } from "../types/review";
-import { parseUnifiedDiffToCode } from "../utils/parseDiffToFileReview";
+import DiffViewer, { DiffMethod } from "react-diff-viewer-continued";
+import type { FileReview } from "../../types/review";
+import { parseUnifiedDiffToCode } from "../../utils/parseDiffToFileReview";
 import "./FileDiffViewer.css";
 
 interface FileDiffViewerProps {
@@ -42,7 +41,6 @@ export function FileDiffViewer({ fileReview }: FileDiffViewerProps) {
           />
           Show changes only
         </label>
-
       </div>
 
       <div className="diff-surface">

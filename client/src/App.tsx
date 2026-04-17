@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileDiffViewer } from './components/FileDiffViewer'
+import { FileDiffViewer } from './components/FileDiffViewer/FileDiffViewer'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
 import './App.css'
 import { DIFF_MULTIPLE_HUNKS } from '../../tests/fixtures/testDiffs'

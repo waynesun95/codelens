@@ -44,8 +44,6 @@
   overflow-x: auto;
 }
 
-/* react-diff-viewer-continued DiffViewer library component style overrides */
-
 .diff-surface .diff-container {
   min-width: fit-content;
 }
@@ -55,5 +53,5 @@
 }
 
 .diff-surface pre {
-  margin: 0;  /* pre element built in margin was causing leftTitle and rightTitle to be pushed down and clipped */
+  margin: 0;
 }
