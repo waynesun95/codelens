@@ -1,5 +1,8 @@
 node_modules/
 dist/
+codelens_architecture.svg
+codelens_build_plan.html
+Master_Context_Summary.md
 
 # Stray JS emitted if `tsc` is run on prompts without outDir
 prompts/*.js

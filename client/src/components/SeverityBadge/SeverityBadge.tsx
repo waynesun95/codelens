@@ -1,6 +1,6 @@
-import "./SeverityBadge.css";
+import type { IssueSeverity } from "./SeverityBadge.types";
 
-export type IssueSeverity = "critical" | "warning" | "suggestion" | "praise";
+export type { IssueSeverity } from "./SeverityBadge.types";
 
 const LABELS: Record<IssueSeverity, string> = {
   critical: "Critical",
@@ -16,6 +16,17 @@ const COMPACT: Record<IssueSeverity, string> = {
   praise: "P",
 };
 
+const SEVERITY_CLASSES: Record<IssueSeverity, string> = {
+  critical:
+    "border border-red-900/40 bg-severity-critical text-red-50 dark:border-red-950/50",
+  warning:
+    "border border-amber-900/40 bg-severity-warning text-amber-950 dark:border-amber-950/50 dark:text-amber-50",
+  suggestion:
+    "border border-blue-900/40 bg-severity-suggestion text-blue-50 dark:border-blue-950/50",
+  praise:
+    "border border-green-900/40 bg-severity-praise text-green-50 dark:border-green-950/50",
+};
+
 interface SeverityBadgeProps {
   severity: IssueSeverity;
   compact?: boolean;
@@ -23,10 +34,14 @@ interface SeverityBadgeProps {
 }
 
 export function SeverityBadge({ severity, compact = false, className }: SeverityBadgeProps) {
+  const sizeClasses = compact
+    ? "min-h-[1.35rem] min-w-[1.35rem] rounded-full p-0 text-[0.65rem]"
+    : "rounded px-[0.45rem] py-[0.15rem] text-[0.72rem]";
+
   const rootClass = [
-    "severity-badge",
-    `severity-badge--${severity}`,
-    compact ? "severity-badge--compact" : "severity-badge--default",
+    "inline-flex items-center justify-center font-semibold capitalize tracking-wide whitespace-nowrap",
+    sizeClasses,
+    SEVERITY_CLASSES[severity],
     className,
   ]
     .filter(Boolean)
