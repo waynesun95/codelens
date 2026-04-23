@@ -17,7 +17,9 @@ export interface ReviewResponse {
     stats: ReviewStatistics;
 }
 
-interface ReviewStatistics {
+export type OverallSeverity = ReviewResponse['overallSeverity'];
+
+export interface ReviewStatistics {
     critical: number;
     warning: number;
     suggestion: number;

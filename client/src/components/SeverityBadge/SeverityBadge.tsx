@@ -1,22 +1,28 @@
-import type { IssueSeverity } from "./SeverityBadge.types";
+import type { SeverityBadgeSeverity } from "./SeverityBadge.types";
 
-export type { IssueSeverity } from "./SeverityBadge.types";
+export type { IssueSeverity, SeverityBadgeSeverity } from "./SeverityBadge.types";
 
-const LABELS: Record<IssueSeverity, string> = {
+const LABELS: Record<SeverityBadgeSeverity, string> = {
   critical: "Critical",
   warning: "Warning",
   suggestion: "Suggestion",
   praise: "Praise",
+  clean: "Clean",
+  minor: "Minor",
+  moderate: "Moderate",
 };
 
-const COMPACT: Record<IssueSeverity, string> = {
+const COMPACT: Record<SeverityBadgeSeverity, string> = {
   critical: "C",
   warning: "W",
   suggestion: "S",
   praise: "P",
+  clean: "CL",
+  minor: "MI",
+  moderate: "MO",
 };
 
-const SEVERITY_CLASSES: Record<IssueSeverity, string> = {
+const SEVERITY_CLASSES: Record<SeverityBadgeSeverity, string> = {
   critical:
     "border border-red-900/40 bg-severity-critical text-red-50 dark:border-red-950/50",
   warning:
@@ -25,10 +31,16 @@ const SEVERITY_CLASSES: Record<IssueSeverity, string> = {
     "border border-blue-900/40 bg-severity-suggestion text-blue-50 dark:border-blue-950/50",
   praise:
     "border border-green-900/40 bg-severity-praise text-green-50 dark:border-green-950/50",
+  clean:
+    "border border-green-900/40 bg-severity-praise text-green-50 dark:border-green-950/50",
+  minor:
+    "border border-blue-900/40 bg-severity-suggestion text-blue-50 dark:border-blue-950/50",
+  moderate:
+    "border border-amber-900/40 bg-severity-warning text-amber-950 dark:border-amber-950/50 dark:text-amber-50",
 };
 
 interface SeverityBadgeProps {
-  severity: IssueSeverity;
+  severity: SeverityBadgeSeverity;
   compact?: boolean;
   className?: string;
 }

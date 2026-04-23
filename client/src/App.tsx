@@ -1,8 +1,43 @@
 import { useState } from 'react'
 import { FileDiffViewer } from './components/FileDiffViewer/FileDiffViewer'
 import { SeverityBadge } from './components/SeverityBadge/SeverityBadge'
+import { SummaryPanel } from './components/SummaryPanel/SummaryPanel'
+import type { ReviewResponse } from './types/review'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
 import { DIFF_MULTIPLE_HUNKS } from '../../tests/fixtures/testDiffs'
+
+/** Mock structured review for SummaryPanel layout validation (replace with API state later). */
+const MOCK_REVIEW: ReviewResponse = {
+  summary:
+    'The changes improve input validation and code formatting but introduce a critical bug in the refresh token logic. The addition of Zod validation and consistent error messaging are positive improvements.',
+  overallSeverity: 'moderate',
+  issues: [
+    {
+      id: 1,
+      severity: 'critical',
+      category: 'bug',
+      lineNumber: 84,
+      title: 'User existence not validated in refresh token flow',
+      description:
+        'The code fetches the user but does not check if the user exists before generating new tokens.',
+      suggestion: "Add validation: if (!user) { throw new UnauthorizedError('User not found'); }",
+    },
+    {
+      id: 2,
+      severity: 'warning',
+      category: 'security',
+      lineNumber: 21,
+      title: 'Email validation should be consistent across functions',
+      description: 'Email validation with Zod is only applied in the login function but not in register.',
+    },
+  ],
+  stats: {
+    critical: 1,
+    warning: 1,
+    suggestion: 2,
+    praise: 2,
+  },
+}
 
 export function App() {
   const [diff, setDiff] = useState(DIFF_MULTIPLE_HUNKS)
@@ -73,6 +108,12 @@ export function App() {
         </div>
       </section>
 
+      <section className="flex flex-col gap-2" aria-label="Summary panel preview">
+        <h2 className="m-0 text-base font-semibold text-fg">Summary panel (preview)</h2>
+        <p className="mb-1 text-sm text-fg-muted">Mock <code className="font-mono text-fg">ReviewResponse</code> — wire to API next.</p>
+        <SummaryPanel review={MOCK_REVIEW} />
+      </section>
+
       <section className="flex flex-col gap-2">
         <label htmlFor="diff-input" className="text-sm font-semibold text-fg">
           Diff
@@ -101,7 +142,7 @@ export function App() {
       {error ? (
         <section className="flex flex-col gap-2" role="alert">
           <h2 className="m-0 text-base font-semibold text-fg">Error</h2>
-          <pre className="max-h-[min(70vh,40rem)] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-300/40 bg-canvas-muted p-4 font-mono text-sm text-red-700 dark:border-red-400/35 dark:text-red-300">
+          <pre className="max-h-[min(70vh,40rem)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-red-300/40 bg-canvas-muted p-4 font-mono text-sm text-red-700 dark:border-red-400/35 dark:text-red-300">
             {error}
           </pre>
         </section>
@@ -110,7 +151,7 @@ export function App() {
       {resultText ? (
         <section className="flex flex-col gap-2">
           <h2 className="m-0 text-base font-semibold text-fg">Response</h2>
-          <pre className="max-h-[min(70vh,40rem)] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-canvas-muted p-4 font-mono text-sm text-fg">
+          <pre className="max-h-[min(70vh,40rem)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-border bg-canvas-muted p-4 font-mono text-sm text-fg">
             {resultText}
           </pre>
         </section>
