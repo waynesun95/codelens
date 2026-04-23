@@ -4,7 +4,7 @@ import { SeverityBadge } from './components/SeverityBadge/SeverityBadge'
 import { SummaryPanel } from './components/SummaryPanel/SummaryPanel'
 import type { ReviewResponse } from './types/review'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
-import { DIFF_MULTIPLE_HUNKS } from '../../tests/fixtures/testDiffs'
+import { DIFF_MULTIPLE_HUNKS } from './fixtures/testDiffs'
 
 /** Mock structured review for SummaryPanel layout validation (replace with API state later). */
 const MOCK_REVIEW: ReviewResponse = {
@@ -100,11 +100,11 @@ export function App() {
           <SeverityBadge severity="suggestion" />
           <SeverityBadge severity="praise" />
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <SeverityBadge severity="critical" compact />
-          <SeverityBadge severity="warning" compact />
-          <SeverityBadge severity="suggestion" compact />
-          <SeverityBadge severity="praise" compact />
+        <p className="mb-1 mt-2 text-xs text-fg-muted">With optional count:</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <SeverityBadge severity="critical" count={1} />
+          <SeverityBadge severity="warning" count={3} />
+          <SeverityBadge severity="suggestion" count={12} />
         </div>
       </section>
 

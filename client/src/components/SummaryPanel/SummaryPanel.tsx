@@ -1,17 +1,16 @@
-import type { ReviewResponse } from "../../types/review";
+import type { IssueSeverity, ReviewResponse } from "../../types/review";
 import { SeverityBadge } from "../SeverityBadge/SeverityBadge";
+
+/** Display order for stats badges (not coupled to prompt/schema source of truth). */
+const SEVERITY_DISPLAY_ORDER: readonly IssueSeverity[] = [
+  "critical",
+  "warning",
+  "suggestion",
+  "praise",
+];
 
 interface SummaryPanelProps {
   review: ReviewResponse;
-}
-
-function formatStatisticsPlain(stats: ReviewResponse["stats"]): string {
-  return [
-    `critical: ${stats.critical}`,
-    `warning: ${stats.warning}`,
-    `suggestion: ${stats.suggestion}`,
-    `praise: ${stats.praise}`,
-  ].join(", ");
 }
 
 export function SummaryPanel({ review }: SummaryPanelProps) {
@@ -35,9 +34,22 @@ export function SummaryPanel({ review }: SummaryPanelProps) {
         </span>
       </div>
 
-      <p className="m-0 font-mono text-sm leading-relaxed text-fg-muted">
-        ReviewStatistics: {formatStatisticsPlain(review.stats)}
-      </p>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+          By severity
+        </span>
+        <div
+          className="flex flex-wrap gap-2"
+          role="list"
+          aria-label="Issue counts by severity"
+        >
+          {SEVERITY_DISPLAY_ORDER.map((key) => (
+            <span key={key} role="listitem">
+              <SeverityBadge severity={key} count={review.stats[key]} />
+            </span>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

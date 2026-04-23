@@ -1,7 +1,5 @@
 import type { SeverityBadgeSeverity } from "./SeverityBadge.types";
 
-export type { IssueSeverity, SeverityBadgeSeverity } from "./SeverityBadge.types";
-
 const LABELS: Record<SeverityBadgeSeverity, string> = {
   critical: "Critical",
   warning: "Warning",
@@ -10,16 +8,6 @@ const LABELS: Record<SeverityBadgeSeverity, string> = {
   clean: "Clean",
   minor: "Minor",
   moderate: "Moderate",
-};
-
-const COMPACT: Record<SeverityBadgeSeverity, string> = {
-  critical: "C",
-  warning: "W",
-  suggestion: "S",
-  praise: "P",
-  clean: "CL",
-  minor: "MI",
-  moderate: "MO",
 };
 
 const SEVERITY_CLASSES: Record<SeverityBadgeSeverity, string> = {
@@ -41,13 +29,24 @@ const SEVERITY_CLASSES: Record<SeverityBadgeSeverity, string> = {
 
 interface SeverityBadgeProps {
   severity: SeverityBadgeSeverity;
-  compact?: boolean;
+  /** When set, label includes the count (e.g. `Critical: 1`). */
+  count?: number;
   className?: string;
 }
 
-export function SeverityBadge({ severity, compact = false, className }: SeverityBadgeProps) {
-  const sizeClasses = compact
-    ? "min-h-[1.35rem] min-w-[1.35rem] rounded-full p-0 text-[0.65rem]"
+function getDisplayText(severity: SeverityBadgeSeverity, count: number | undefined): string {
+  const label = LABELS[severity];
+  if (count === undefined) {
+    return label;
+  }
+  return `${label}: ${count}`;
+}
+
+export function SeverityBadge({ severity, count, className }: SeverityBadgeProps) {
+  const hasCount = count !== undefined;
+
+  const sizeClasses = hasCount
+    ? "rounded px-2 py-1 text-[0.72rem]"
     : "rounded px-[0.45rem] py-[0.15rem] text-[0.72rem]";
 
   const rootClass = [
@@ -59,9 +58,11 @@ export function SeverityBadge({ severity, compact = false, className }: Severity
     .filter(Boolean)
     .join(" ");
 
+  const title = hasCount ? `${LABELS[severity]}: ${count}` : LABELS[severity];
+
   return (
-    <span className={rootClass} title={LABELS[severity]}>
-      {compact ? COMPACT[severity] : LABELS[severity]}
+    <span className={rootClass} title={title}>
+      {getDisplayText(severity, count)}
     </span>
   );
 }
