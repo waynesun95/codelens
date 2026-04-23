@@ -44,6 +44,7 @@ export function App() {
   const [resultText, setResultText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [apiReview, setApiReview] = useState<ReviewResponse | null>(null)
 
   const fileReview = parseDiffToFileReview(diff)
 
@@ -51,6 +52,7 @@ export function App() {
     setLoading(true)
     setError(null)
     setResultText('')
+    setApiReview(null)
 
     try {
       const response = await fetch('/api/review', {
@@ -74,6 +76,7 @@ export function App() {
       }
 
       setResultText(JSON.stringify(payload, null, 2))
+      setApiReview(payload as ReviewResponse)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Network error'
       setError(message)
@@ -110,7 +113,9 @@ export function App() {
 
       <section className="flex flex-col gap-2" aria-label="Summary panel preview">
         <h2 className="m-0 text-base font-semibold text-fg">Summary panel (preview)</h2>
-        <p className="mb-1 text-sm text-fg-muted">Mock <code className="font-mono text-fg">ReviewResponse</code> — wire to API next.</p>
+        <p className="mb-1 text-sm text-fg-muted">
+          Mock <code className="font-mono text-fg">ReviewResponse</code> — wire to API next.
+        </p>
         <SummaryPanel review={MOCK_REVIEW} />
       </section>
 
@@ -138,6 +143,13 @@ export function App() {
       </section>
 
       <FileDiffViewer fileReview={fileReview} />
+
+      {apiReview ? (
+        <section className="flex flex-col gap-2" aria-label="API review summary">
+          <h2 className="m-0 text-base font-semibold text-fg">Review from API</h2>
+          <SummaryPanel review={apiReview} />
+        </section>
+      ) : null}
 
       {error ? (
         <section className="flex flex-col gap-2" role="alert">
