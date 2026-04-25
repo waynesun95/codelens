@@ -107,6 +107,12 @@ app.post("/api/review/stream", async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const startTime = Date.now();
+    const elapsed = () => `${Date.now() - startTime}ms`;
+    console.log("[review/stream] start; diff length:", diff.length);
 
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-20250514",
@@ -119,23 +125,46 @@ app.post("/api/review/stream", async (req, res) => {
       ],
     });
 
+    let textChunkCount = 0;
+
+    stream.on("connect", () => {
+      console.log(`[review/stream] connected at ${elapsed()}`);
+    });
+
     stream.on("text", (text) => {
+      if (textChunkCount === 0) {
+        console.log(`[review/stream] first text at ${elapsed()}; len=${text.length}`);
+      }
+      textChunkCount += 1;
+      if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify({ type: "text", content: text })}\n\n`);
     });
 
     stream.on("end", () => {
+      console.log(`[review/stream] end at ${elapsed()}; text chunks:`, textChunkCount);
+      if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
       res.end();
     });
 
     stream.on("error", (error) => {
-      console.error("Stream error:", error);
+      console.error(`[review/stream] error at ${elapsed()}:`, error);
+      if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify({ type: "error", content: "Stream failed" })}\n\n`);
       res.end();
     });
 
-    // Handle client disconnect
-    req.on("close", () => {
+    // Required: SDK creates an unhandled rejection on abort if no listener is attached.
+    stream.on("abort", () => {
+      console.log(`[review/stream] abort at ${elapsed()}; text chunks before abort:`, textChunkCount);
+    });
+
+    // Detect client disconnect via the response stream — `req.on("close")` fires
+    // as soon as `express.json()` finishes consuming the body, which is a false
+    // positive. `res` closes only when we end it ourselves or the client drops.
+    res.on("close", () => {
+      if (res.writableEnded) return;
+      console.log(`[review/stream] client dropped at ${elapsed()}`);
       stream.abort();
     });
   } catch (error: any) {
