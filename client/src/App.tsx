@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { DiffInlineIssue } from './components/DiffInlineIssue/DiffInlineIssue'
 import { FileDiffViewer } from './components/FileDiffViewer/FileDiffViewer'
 import { SeverityBadge } from './components/SeverityBadge/SeverityBadge'
 import { SummaryPanel } from './components/SummaryPanel/SummaryPanel'
+import { useReviewStream } from './hooks/useReviewStream'
 import type { ReviewResponse } from './types/review'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
 import { DIFF_MULTIPLE_HUNKS } from './fixtures/testDiffs'
@@ -41,49 +43,9 @@ const MOCK_REVIEW: ReviewResponse = {
 
 export function App() {
   const [diff, setDiff] = useState(DIFF_MULTIPLE_HUNKS)
-  const [resultText, setResultText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [apiReview, setApiReview] = useState<ReviewResponse | null>(null)
+  const { streamingText, review: apiReview, loading, error, runReview } = useReviewStream()
 
   const fileReview = parseDiffToFileReview(diff)
-
-  async function runReview() {
-    setLoading(true)
-    setError(null)
-    setResultText('')
-    setApiReview(null)
-
-    try {
-      const response = await fetch('/api/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ diff }),
-      })
-
-      const payload: unknown = await response.json().catch(() => null)
-
-      if (!response.ok) {
-        const message =
-          payload &&
-          typeof payload === 'object' &&
-          'error' in payload &&
-          typeof (payload as { error: unknown }).error === 'string'
-            ? (payload as { error: string }).error
-            : `Request failed (${response.status})`
-        setError(message)
-        return
-      }
-
-      setResultText(JSON.stringify(payload, null, 2))
-      setApiReview(payload as ReviewResponse)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Network error'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6 py-6 pb-12 text-left">
@@ -135,7 +97,7 @@ export function App() {
         <button
           type="button"
           className="self-start rounded-lg bg-accent px-5 py-2 text-base font-semibold text-canvas hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={runReview}
+          onClick={() => runReview(diff)}
           disabled={loading || !diff.trim()}
         >
           {loading ? 'Reviewing…' : 'Review'}
@@ -151,6 +113,28 @@ export function App() {
         </section>
       ) : null}
 
+      {apiReview && apiReview.issues.length > 0 ? (
+        <section className="flex flex-col gap-2" aria-label="API review issues">
+          <h2 className="m-0 text-base font-semibold text-fg">Issues from API</h2>
+          <div className="flex flex-col gap-2">
+            {apiReview.issues.map((issue) => (
+              <div key={issue.id} className="flex flex-col gap-1">
+                <span className="text-xs text-fg-muted">
+                  Line {issue.lineNumber ?? '—'} · id {issue.id}
+                </span>
+                <DiffInlineIssue
+                  severity={issue.severity}
+                  category={issue.category}
+                  title={issue.title}
+                  description={issue.description}
+                  suggestion={issue.suggestion}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {error ? (
         <section className="flex flex-col gap-2" role="alert">
           <h2 className="m-0 text-base font-semibold text-fg">Error</h2>
@@ -160,11 +144,11 @@ export function App() {
         </section>
       ) : null}
 
-      {resultText ? (
+      {streamingText ? (
         <section className="flex flex-col gap-2">
           <h2 className="m-0 text-base font-semibold text-fg">Response</h2>
           <pre className="max-h-[min(70vh,40rem)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-border bg-canvas-muted p-4 font-mono text-sm text-fg">
-            {resultText}
+            {streamingText}
           </pre>
         </section>
       ) : null}
