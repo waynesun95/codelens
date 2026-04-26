@@ -1,47 +1,13 @@
 import { useMemo, useState } from 'react'
 import { FileDiffViewer } from './components/FileDiffViewer/FileDiffViewer'
-import { SeverityBadge } from './components/SeverityBadge/SeverityBadge'
 import { SummaryPanel } from './components/SummaryPanel/SummaryPanel'
 import { useReviewStream } from './hooks/useReviewStream'
-import type { ReviewResponse } from './types/review'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
-import { DIFF_REACT_ANTIPATTERN } from './fixtures/testDiffs'
-
-/** Mock structured review for SummaryPanel layout validation (replace with API state later). */
-const MOCK_REVIEW: ReviewResponse = {
-  summary:
-    'The changes improve input validation and code formatting but introduce a critical bug in the refresh token logic. The addition of Zod validation and consistent error messaging are positive improvements.',
-  overallSeverity: 'moderate',
-  issues: [
-    {
-      id: 1,
-      severity: 'critical',
-      category: 'bug',
-      lineNumber: 84,
-      title: 'User existence not validated in refresh token flow',
-      description:
-        'The code fetches the user but does not check if the user exists before generating new tokens.',
-      suggestion: "Add validation: if (!user) { throw new UnauthorizedError('User not found'); }",
-    },
-    {
-      id: 2,
-      severity: 'warning',
-      category: 'security',
-      lineNumber: 21,
-      title: 'Email validation should be consistent across functions',
-      description: 'Email validation with Zod is only applied in the login function but not in register.',
-    },
-  ],
-  stats: {
-    critical: 1,
-    warning: 1,
-    suggestion: 2,
-    praise: 2,
-  },
-}
+import { parsePartialReview } from './utils/parsePartialReview'
+import { DIFF_NEW_FILE } from './fixtures/testDiffs'
 
 export function App() {
-  const [diff, setDiff] = useState(DIFF_REACT_ANTIPATTERN)
+  const [diff, setDiff] = useState(DIFF_NEW_FILE)
   const { streamingText, review: apiReview, loading, error, runReview } = useReviewStream()
 
   // Memoize so FileDiffViewer's inline-injection effect only re-runs when the
@@ -51,39 +17,27 @@ export function App() {
     [diff, apiReview],
   )
 
+  // Drive the summary panel from the parsed review when available, otherwise
+  // from a best-effort parse of the in-flight streaming text.
+  const summaryData = useMemo(() => {
+    if (apiReview) {
+      return {
+        summary: apiReview.summary,
+        overallSeverity: apiReview.overallSeverity,
+        stats: apiReview.stats,
+        issueCount: apiReview.issues.length,
+      }
+    }
+    if (streamingText) return parsePartialReview(streamingText)
+    return null
+  }, [apiReview, streamingText])
+
   return (
     <div className="flex flex-col gap-6 py-6 pb-12 text-left">
       <header>
         <h1 className="mb-1 text-3xl font-medium text-fg">CodeLens</h1>
         <p className="text-fg-muted">Paste a diff, run a review (Day 1)</p>
       </header>
-
-      <section className="flex flex-col gap-2" aria-label="Severity badge preview">
-        <h2 className="m-0 text-base font-semibold text-fg">Severity badges (preview)</h2>
-        <p className="mb-1 text-sm text-fg-muted">
-          Hardcoded variants for visual check — wire-up comes later.
-        </p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <SeverityBadge severity="critical" />
-          <SeverityBadge severity="warning" />
-          <SeverityBadge severity="suggestion" />
-          <SeverityBadge severity="praise" />
-        </div>
-        <p className="mb-1 mt-2 text-xs text-fg-muted">With optional count:</p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <SeverityBadge severity="critical" count={1} />
-          <SeverityBadge severity="warning" count={3} />
-          <SeverityBadge severity="suggestion" count={12} />
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-2" aria-label="Summary panel preview">
-        <h2 className="m-0 text-base font-semibold text-fg">Summary panel (preview)</h2>
-        <p className="mb-1 text-sm text-fg-muted">
-          Mock <code className="font-mono text-fg">ReviewResponse</code> — wire to API next.
-        </p>
-        <SummaryPanel review={MOCK_REVIEW} />
-      </section>
 
       <section className="flex flex-col gap-2">
         <label htmlFor="diff-input" className="text-sm font-semibold text-fg">
@@ -108,14 +62,29 @@ export function App() {
         </button>
       </section>
 
-      <FileDiffViewer fileReview={fileReview} />
+      {summaryData ? (
+        <SummaryPanel {...summaryData} loading={loading} />
+      ) : (
+        <div
+          className="flex flex-col gap-3 rounded-lg border border-border bg-canvas-muted/40 p-4"
+          role="status"
+          aria-live="polite"
+        >
+          {loading ? (
+            <p className="m-0 animate-pulse text-sm italic text-fg-muted">
+              Reviewing your diff…
+            </p>
+          ) : (
+            <p className="m-0 text-sm text-fg-muted">
+              Paste a diff above and click{' '}
+              <span className="font-semibold text-fg">Review</span> to see an
+              AI-powered code review here.
+            </p>
+          )}
+        </div>
+      )}
 
-      {apiReview ? (
-        <section className="flex flex-col gap-2" aria-label="API review summary">
-          <h2 className="m-0 text-base font-semibold text-fg">Review from API</h2>
-          <SummaryPanel review={apiReview} />
-        </section>
-      ) : null}
+      <FileDiffViewer fileReview={fileReview} />
 
       {error ? (
         <section className="flex flex-col gap-2" role="alert">
