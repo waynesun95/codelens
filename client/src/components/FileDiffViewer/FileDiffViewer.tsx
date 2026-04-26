@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import DiffViewer, { DiffMethod } from "react-diff-viewer-continued";
 import type { FileReview } from "../../types/review";
 import { parseUnifiedDiffToCode } from "../../utils/parseDiffToFileReview";
+import { DiffInlineIssue } from "../DiffInlineIssue/DiffInlineIssue";
 
 interface FileDiffViewerProps {
   fileReview: FileReview;
@@ -14,12 +16,16 @@ export function FileDiffViewer({ fileReview }: FileDiffViewerProps) {
   const lineRowMapRef = useRef(new Map<number, HTMLTableRowElement>());
 
   const parsedDiff = useMemo(() => parseUnifiedDiffToCode(fileReview.diff), [fileReview.diff]);
+  const issues = fileReview.review.issues;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const map = lineRowMapRef.current;
+    // Track injected rows by issue id (multiple issues can share a line).
+    const injected = new Map<number, { row: HTMLTableRowElement; root: Root }>();
     let scheduled = false;
+
     const scan = () => {
       map.clear();
       container.querySelectorAll<HTMLTableRowElement>("tbody tr").forEach((row) => {
@@ -32,8 +38,32 @@ export function FileDiffViewer({ fileReview }: FileDiffViewerProps) {
           }
         }
       });
-      console.log("[FileDiffViewer] line -> tr map", map);
+
+      issues.forEach((issue) => {
+        if (issue.lineNumber === null) return;
+        if (injected.has(issue.id)) return;
+        const anchor = map.get(issue.lineNumber);
+        if (!anchor || !anchor.parentElement) return;
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = anchor.cells.length;
+        td.className = "border-y border-border bg-canvas-muted/40 p-2";
+        tr.appendChild(td);
+        anchor.parentElement.insertBefore(tr, anchor.nextSibling);
+        const root = createRoot(td);
+        root.render(
+          <DiffInlineIssue
+            severity={issue.severity}
+            category={issue.category}
+            title={issue.title}
+            description={issue.description}
+            suggestion={issue.suggestion}
+          />,
+        );
+        injected.set(issue.id, { row: tr, root });
+      });
     };
+
     const schedule = () => {
       if (scheduled) return;
       scheduled = true;
@@ -45,8 +75,18 @@ export function FileDiffViewer({ fileReview }: FileDiffViewerProps) {
     schedule();
     const observer = new MutationObserver(schedule);
     observer.observe(container, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [fileReview.diff]);
+
+    return () => {
+      observer.disconnect();
+      injected.forEach(({ row, root }) => {
+        queueMicrotask(() => {
+          root.unmount();
+          row.remove();
+        });
+      });
+      injected.clear();
+    };
+  }, [fileReview.diff, splitView, showDiffOnly, issues]);
 
   return (
     <section className="flex flex-col gap-3">

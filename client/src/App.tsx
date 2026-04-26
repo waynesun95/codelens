@@ -1,12 +1,11 @@
-import { useState } from 'react'
-import { DiffInlineIssue } from './components/DiffInlineIssue/DiffInlineIssue'
+import { useMemo, useState } from 'react'
 import { FileDiffViewer } from './components/FileDiffViewer/FileDiffViewer'
 import { SeverityBadge } from './components/SeverityBadge/SeverityBadge'
 import { SummaryPanel } from './components/SummaryPanel/SummaryPanel'
 import { useReviewStream } from './hooks/useReviewStream'
 import type { ReviewResponse } from './types/review'
 import { parseDiffToFileReview } from './utils/parseDiffToFileReview'
-import { DIFF_MULTIPLE_HUNKS } from './fixtures/testDiffs'
+import { DIFF_REACT_ANTIPATTERN } from './fixtures/testDiffs'
 
 /** Mock structured review for SummaryPanel layout validation (replace with API state later). */
 const MOCK_REVIEW: ReviewResponse = {
@@ -42,10 +41,15 @@ const MOCK_REVIEW: ReviewResponse = {
 }
 
 export function App() {
-  const [diff, setDiff] = useState(DIFF_MULTIPLE_HUNKS)
+  const [diff, setDiff] = useState(DIFF_REACT_ANTIPATTERN)
   const { streamingText, review: apiReview, loading, error, runReview } = useReviewStream()
 
-  const fileReview = parseDiffToFileReview(diff)
+  // Memoize so FileDiffViewer's inline-injection effect only re-runs when the
+  // diff or the review changes — not on every parent render.
+  const fileReview = useMemo(
+    () => parseDiffToFileReview(diff, apiReview ?? undefined),
+    [diff, apiReview],
+  )
 
   return (
     <div className="flex flex-col gap-6 py-6 pb-12 text-left">
@@ -110,28 +114,6 @@ export function App() {
         <section className="flex flex-col gap-2" aria-label="API review summary">
           <h2 className="m-0 text-base font-semibold text-fg">Review from API</h2>
           <SummaryPanel review={apiReview} />
-        </section>
-      ) : null}
-
-      {apiReview && apiReview.issues.length > 0 ? (
-        <section className="flex flex-col gap-2" aria-label="API review issues">
-          <h2 className="m-0 text-base font-semibold text-fg">Issues from API</h2>
-          <div className="flex flex-col gap-2">
-            {apiReview.issues.map((issue) => (
-              <div key={issue.id} className="flex flex-col gap-1">
-                <span className="text-xs text-fg-muted">
-                  Line {issue.lineNumber ?? '—'} · id {issue.id}
-                </span>
-                <DiffInlineIssue
-                  severity={issue.severity}
-                  category={issue.category}
-                  title={issue.title}
-                  description={issue.description}
-                  suggestion={issue.suggestion}
-                />
-              </div>
-            ))}
-          </div>
         </section>
       ) : null}
 
